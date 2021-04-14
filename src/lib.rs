@@ -178,10 +178,14 @@ impl BufferRenderer {
                 self.keystrokes[self.num_keystrokes] = chr;
                 self.num_keystrokes += 1;
             }
+        }else {
+            self.print_char('\n');
         }
     }
 }
 
+// let b = BufferRenderer();
+// format!(b, "this is an int: {}", i);
 impl core::fmt::Write for BufferRenderer {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {
         self.print(s);
