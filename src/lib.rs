@@ -66,8 +66,13 @@ lazy_static! {
     static ref REVERSE_COLOR: ColorCode = ColorCode::new(Color::Black, Color::White);
 }
 
-pub struct Kernel {
+const MAX_PROCESSES: usize = 4;
 
+pub struct Kernel {
+    processes: [ProcessData; MAX_PROCESSES],
+    current_window_pid: usize,
+    scheduler: Policy,
+    status_buffer: BufferRenderer
 }
 
 impl Kernel {
@@ -89,5 +94,97 @@ impl Kernel {
 
     pub fn key(&mut self, key: DecodedKey) {
         unimplemented!()
+    }
+}
+
+struct ProcessData {
+    // TODO: Your code here
+}
+
+pub enum Policy {
+    CurrentOnly
+    // TODO: Add some more options, then handle them in pick_pid()
+}
+
+impl Policy {
+    fn pick_pid(&self, current_pid: usize, processes: &[ProcessData; MAX_PROCESSES]) -> Option<usize> {
+        match self {
+            Policy::CurrentOnly => Some(current_pid),
+            _ => None
+        }
+    }
+}
+
+#[derive(Copy,Clone)]
+struct BufferRenderer {
+    x_start: usize, y_start: usize, x_end: usize, y_end: usize,
+    x_cursor: usize, keystrokes: [u8; BUFFER_WIDTH], num_keystrokes: usize
+}
+
+impl BufferRenderer {
+    fn new(x_start: usize, y_start: usize, x_end: usize, y_end: usize) -> Self {
+        BufferRenderer {x_start, y_start, x_end, y_end, x_cursor: x_start,
+            keystrokes: [0; BUFFER_WIDTH], num_keystrokes: 0}
+    }
+
+    fn reset_cursor(&mut self) {
+        self.x_cursor = self.x_start;
+    }
+
+    fn print(&mut self, s: &str) {
+        for c in s.chars() {
+            self.print_char(c);
+        }
+    }
+
+    fn println(&mut self, s: &str) {
+        self.print(s);
+        self.print_char('\n');
+    }
+
+    fn print_char(&mut self, c: char) {
+        if c == '\n' {
+            self.scroll_vertical();
+        } else {
+            // TODO: Your code here
+            unimplemented!()
+        }
+    }
+
+    fn scroll_vertical(&mut self) {
+        // TODO: Your code here
+        unimplemented!()
+    }
+
+    fn clear_window(&mut self) {
+        for x in self.x_start..=self.x_end {
+            for y in self.y_start..=self.y_end {
+                plot(' ', x, y, *TEXT_COLOR);
+            }
+        }
+        self.reset_cursor();
+    }
+
+    fn give_process_input(&mut self, p: &mut Process) {
+        let s = core::str::from_utf8(&self.keystrokes[0..self.num_keystrokes]).unwrap();
+        p.receive_input(s.trim()).map(|s| self.println(s));
+        self.num_keystrokes = 0;
+    }
+
+    fn receive_char(&mut self, chr: u8) {
+        if self.num_keystrokes + 1 < self.keystrokes.len() {
+            self.print_char(char::from(chr));
+            if chr != b'\n' {
+                self.keystrokes[self.num_keystrokes] = chr;
+                self.num_keystrokes += 1;
+            }
+        }
+    }
+}
+
+impl core::fmt::Write for BufferRenderer {
+    fn write_str(&mut self, s: &str) -> core::fmt::Result {
+        self.print(s);
+        Ok(())
     }
 }
